@@ -58,6 +58,8 @@ public class SecurityConfig {
                         // API public
                         .requestMatchers("/register").permitAll()
                         .requestMatchers("/login").permitAll()
+                        .requestMatchers("/social/login").permitAll()
+                        .requestMatchers("/social/callback").permitAll()
                         // API logout
                         .requestMatchers("/logout").authenticated()
                         // API (POST) - only ADMIN
@@ -104,6 +106,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/update/**").hasAnyRole("ADMIN", "USER")
                         .anyRequest().authenticated()
                 )
+//                .oauth2Login(Customizer.withDefaults())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))//login va reload sinh ra session moi

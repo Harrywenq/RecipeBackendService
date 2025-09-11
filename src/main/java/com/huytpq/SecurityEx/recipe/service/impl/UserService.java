@@ -1,18 +1,24 @@
 package com.huytpq.SecurityEx.recipe.service.impl;
 
+import com.huytpq.SecurityEx.base.dto.JwtResponse;
+import com.huytpq.SecurityEx.base.dto.LoginInput;
 import com.huytpq.SecurityEx.base.exception.BaseException;
 import com.huytpq.SecurityEx.base.exception.ErrorCode;
 import com.huytpq.SecurityEx.recipe.dto.input.RecipeInput;
 import com.huytpq.SecurityEx.recipe.dto.input.RegisterInput;
 import com.huytpq.SecurityEx.recipe.dto.input.UserUpdateInput;
+import com.huytpq.SecurityEx.recipe.dto.output.OutputObject;
 import com.huytpq.SecurityEx.recipe.dto.output.PostOutput;
 import com.huytpq.SecurityEx.recipe.dto.output.RegisterOutput;
 import com.huytpq.SecurityEx.recipe.dto.output.UserOutput;
 import com.huytpq.SecurityEx.recipe.entity.*;
 import com.huytpq.SecurityEx.recipe.mapper.ModelMapper;
 import com.huytpq.SecurityEx.recipe.repo.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,9 +27,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -128,9 +132,65 @@ public class UserService {
                 new UsernamePasswordAuthenticationToken(username, password);
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
 
-        return JWTService.generateToken(username, authentication.getAuthorities().stream()
+        return jwtService.generateToken(username, authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
+    }
+
+    public ResponseEntity<?> verifyOAuth(LoginInput loginInput, HttpServletRequest request) throws Exception {
+        Optional<User> optionalUser;
+        String subject = "";
+
+        if (loginInput.getGoogleAccountId() != null && !loginInput.getGoogleAccountId().isEmpty()) {
+            optionalUser = userRepo.findByGoogleAccountId(loginInput.getGoogleAccountId());
+            subject = "Google:" + loginInput.getGoogleAccountId();
+        } else if (loginInput.getFacebookAccountId() != null && !loginInput.getFacebookAccountId().isEmpty()) {
+            optionalUser = userRepo.findByFacebookAccountId(loginInput.getFacebookAccountId());
+            subject = "Facebook:" + loginInput.getFacebookAccountId();
+        } else {
+            return ResponseEntity.badRequest().body(new OutputObject(
+                    "Invalid login type",
+                    HttpStatus.BAD_REQUEST,
+                    null
+            ));
+        }
+
+        if (optionalUser.isEmpty()) {
+
+            String roleName = loginInput.getRole() != null ? loginInput.getRole() : "USER";
+            Role role = roleRepo.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+
+            User newUser = User.builder()
+                    .username(loginInput.getUsername() != null ? loginInput.getUsername() : "")
+                    .email(loginInput.getUsername() != null ? loginInput.getUsername() : "")
+                    .displayName(loginInput.getDisplayName() != null ? loginInput.getDisplayName() : "")
+                    .profileImage(loginInput.getProfileImage() != null ? loginInput.getProfileImage() : "")
+                    .googleAccountId(loginInput.getGoogleAccountId())
+                    .facebookAccountId(loginInput.getFacebookAccountId())
+                    .password("")
+                    .active(true)
+                    .build();
+
+            newUser = userRepo.save(newUser);
+
+            UserRole userRole = new UserRole();
+            userRole.setUser(newUser);
+            userRole.setRole(role);
+            userRoleRepo.save(userRole);
+
+            optionalUser = Optional.of(newUser);
+        }
+
+        User user = optionalUser.get();
+        List<UserRole> userRoles = userRoleRepo.findByUserId(user.getId());
+        List<String> roles = userRoles.stream()
+                .map(userRole -> userRole.getRole().getName())
+                .collect(Collectors.toList());
+
+        String token = jwtService.generateToken(user.getUsername(), roles);
+
+        return ResponseEntity.ok(new JwtResponse(token));
     }
 
     public User getUserDetailsFromToken(String token) throws Exception {

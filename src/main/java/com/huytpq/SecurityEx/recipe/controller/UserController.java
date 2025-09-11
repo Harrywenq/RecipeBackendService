@@ -1,17 +1,21 @@
 package com.huytpq.SecurityEx.recipe.controller;
 
+import com.huytpq.SecurityEx.base.dto.LoginInput;
 import com.huytpq.SecurityEx.base.security.JwtFilter;
 import com.huytpq.SecurityEx.recipe.dto.input.RecipeInput;
 import com.huytpq.SecurityEx.recipe.dto.input.UserUpdateInput;
+import com.huytpq.SecurityEx.recipe.dto.output.OutputObject;
 import com.huytpq.SecurityEx.recipe.dto.output.PostOutput;
 import com.huytpq.SecurityEx.recipe.dto.output.UserOutput;
 import com.huytpq.SecurityEx.recipe.entity.Role;
 import com.huytpq.SecurityEx.recipe.entity.User;
 import com.huytpq.SecurityEx.recipe.service.impl.AccountService;
+import com.huytpq.SecurityEx.recipe.service.impl.AuthService;
 import com.huytpq.SecurityEx.recipe.service.impl.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController

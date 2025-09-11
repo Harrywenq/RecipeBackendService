@@ -1,5 +1,6 @@
 package com.huytpq.SecurityEx.recipe.service.impl;
 
+import com.huytpq.SecurityEx.recipe.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -47,8 +48,7 @@ public class JWTService {
                 .signWith(getKey())
                 .compact();
     }
-
-
+    
     private static SecretKey getKey() {
         byte[] encodedKey = Base64.getDecoder().decode(secretKey);
         return Keys.hmacShaKeyFor(encodedKey);

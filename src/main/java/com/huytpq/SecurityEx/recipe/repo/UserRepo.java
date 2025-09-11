@@ -26,5 +26,9 @@ public interface UserRepo extends JpaRepository<User, Long> {
                             "ORDER BY u.createdAt DESC"
     )
     List<User> findByCondition(String displayName);
+
+    Optional<User> findByGoogleAccountId(String googleAccountId);
+
+    Optional<User> findByFacebookAccountId(String facebookAccountId);
 }
 
